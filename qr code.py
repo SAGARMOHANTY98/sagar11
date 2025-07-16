@@ -1,13 +1,17 @@
 import streamlit as st
 from PIL import Image, ImageDraw, ImageFont
 import io
-import os
 import qrcode
 
 # Function to get font
 def get_font(size):
-    font_path = "fonts/DejaVuSans-Bold.ttf"  # ensure this file exists in your /fonts folder when deploying
-    return ImageFont.truetype(font_path, size)
+    try:
+        # Try to load the bold font first
+        font_path = "fonts/DejaVuSans-Bold.ttf"
+        return ImageFont.truetype(font_path, size)
+    except:
+        # Fallback to default font if custom font not available
+        return ImageFont.load_default()
 
 # Function to calculate optimal font size
 def calculate_optimal_font_size(label_width, label_height, sample_text_lines):
@@ -45,13 +49,13 @@ def create_invoice_labels():
     date = st.text_input("Enter Date (e.g., 01-07-2024)", value="01-07-2024")
     invoice_no = st.text_input("Enter Invoice Number (e.g., INV-123)", value="INV-123")
     supplier = st.text_input("Enter Supplier Name", value="Supplier Name")
-    num_items = st.number_input("Number of different items", min_value=1, step=1)
+    num_items = st.number_input("Number of different items", min_value=1, step=1, value=1)
 
     items_data = {}
     total_labels = 0
 
     for i in range(1, num_items + 1):
-        pieces = st.number_input(f"Number of pieces for item {i}", min_value=1, step=1)
+        pieces = st.number_input(f"Number of pieces for item {i}", min_value=1, step=1, value=1)
         items_data[i] = pieces
         total_labels += pieces
 
@@ -92,7 +96,7 @@ def create_invoice_labels():
         start_x = MARGIN_LEFT_RIGHT_PX
         start_y = MARGIN_TOP_BOTTOM_PX
 
-        # Font size calculation (still used for line height padding)
+        # Font size calculation
         sample_lines = [
             f"DATE: {date}",
             f"INVOICE: {invoice_no}",
@@ -136,32 +140,57 @@ def create_invoice_labels():
                 x = start_x + col * (LABEL_WIDTH_PX + h_spacing)
                 y = start_y + row * (LABEL_HEIGHT_PX + v_spacing)
 
+                # Draw label border
                 draw.rectangle([x, y, x + LABEL_WIDTH_PX - 1, y + LABEL_HEIGHT_PX - 1], outline="black", width=1)
 
-                # 🧠 Generate QR Code with trimmed data
+                # Generate QR Code
                 qr_data = (
-                    f"D:{date}\n"
-                    f"INV:{invoice_no}\n"
-                    f"SUP:{supplier[:20]}\n"
-                    f"I:{item_num} P:{piece_num}/{num_pieces}"
+                    f"DATE: {date}\n"
+                    f"INVOICE: {invoice_no}\n"
+                    f"SUPPLIER: {supplier[:20]}\n"
+                    f"ITEM: {item_num}\n"
+                    f"PIECE: {piece_num}/{num_pieces}"
                 )
+                
+                # Create QR code with optimized settings
                 qr = qrcode.QRCode(
-                    version=None,
-                    error_correction=qrcode.constants.ERROR_CORRECT_H,
-                    box_size=4,
-                    border=2
+                    version=1,
+                    error_correction=qrcode.constants.ERROR_CORRECT_L,
+                    box_size=3,
+                    border=4
                 )
                 qr.add_data(qr_data)
                 qr.make(fit=True)
+                
+                # Create QR code image
                 qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
-
-                # Resize to fit nicely inside 38x21mm
-                qr_size = min(LABEL_WIDTH_PX, LABEL_HEIGHT_PX) - 10
+                
+                # Resize QR code to fit label
+                qr_size = min(LABEL_WIDTH_PX, LABEL_HEIGHT_PX) // 2  # Make QR code smaller to leave space for text
                 qr_img = qr_img.resize((qr_size, qr_size))
-
-                qr_x = x + (LABEL_WIDTH_PX - qr_size) // 2
-                qr_y = y + (LABEL_HEIGHT_PX - qr_size) // 2
+                
+                # Position QR code in the label
+                qr_x = x + 5  # 5px from left edge
+                qr_y = y + (LABEL_HEIGHT_PX - qr_size) // 2  # Centered vertically
                 sheet.paste(qr_img, (qr_x, qr_y))
+                
+                # Add text next to QR code
+                text_x = qr_x + qr_size + 5  # 5px right of QR code
+                text_y = y + 5  # 5px from top
+                
+                # Draw each line of text
+                line_spacing = 5
+                current_y = text_y
+                
+                for line in [
+                    f"DATE: {date}",
+                    f"INV: {invoice_no}",
+                    f"SUP: {supplier[:15]}",
+                    f"ITEM: {item_num}",
+                    f"PCE: {piece_num}/{num_pieces}"
+                ]:
+                    draw.text((text_x, current_y), line, font=font, fill="black")
+                    current_y += font.getbbox(line)[3] - font.getbbox(line)[1] + line_spacing
 
                 label_count += 1
 
