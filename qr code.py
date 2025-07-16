@@ -3,7 +3,7 @@ from PIL import Image, ImageDraw, ImageFont
 import io
 import qrcode
 
-# Load a default or fallback font
+# Load a font (fallback if Arial Bold is unavailable)
 def get_font(size):
     try:
         return ImageFont.truetype("arialbd.ttf", size)
@@ -12,7 +12,7 @@ def get_font(size):
 
 def create_invoice_labels():
     st.title("📦 QR Code Label Generator (with Location per Item)")
-    st.markdown("Creates 65 labels per A4 sheet (38mm x 21mm each)")
+    st.markdown("Generates 65 labels per A4 sheet (38mm x 21mm each)")
 
     date = st.text_input("Enter Date", "01-07-2024")
     invoice_no = st.text_input("Enter Invoice Number", "INV-123")
@@ -56,7 +56,7 @@ def create_invoice_labels():
         draw = ImageDraw.Draw(sheet)
 
         font_small = get_font(16)
-        font_big = get_font(22)
+        font_big = get_font(26)
 
         for item_num, info in items_data.items():
             num_pieces = info["pieces"]
@@ -65,16 +65,13 @@ def create_invoice_labels():
                 if label_count >= MAX_LABELS_PER_SHEET:
                     buf = io.BytesIO()
                     sheet.save(buf, format="PNG", dpi=(DPI, DPI))
-                    sheet_data = buf.getvalue()
-
                     st.image(buf, caption=f"Sheet {sheet_number}", use_container_width=True)
                     st.download_button(
                         label=f"📥 Download Sheet {sheet_number}",
-                        data=sheet_data,
+                        data=buf.getvalue(),
                         file_name=f"QR_Labels_Sheet_{sheet_number}.png",
                         mime="image/png"
                     )
-
                     sheet_number += 1
                     sheet = Image.new("RGB", (A4_WIDTH_PX, A4_HEIGHT_PX), "white")
                     draw = ImageDraw.Draw(sheet)
@@ -87,8 +84,6 @@ def create_invoice_labels():
 
                 # Prepare QR data
                 qr_data = f"DT:{date}|INV:{invoice_no}|SUP:{supplier}|LOC:{location}"
-
-                # Generate QR code
                 qr = qrcode.QRCode(
                     version=1,
                     error_correction=qrcode.constants.ERROR_CORRECT_Q,
@@ -99,33 +94,34 @@ def create_invoice_labels():
                 qr.make(fit=True)
                 qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
 
-                # Resize and paste QR code
-                qr_size = int(LABEL_WIDTH_PX * 0.4)
+                # Resize QR code
+                qr_size = int(LABEL_WIDTH_PX * 0.35)
                 qr_img = qr_img.resize((qr_size, qr_size))
-                qr_x = x + LABEL_WIDTH_PX - qr_size - 6  # shift right
-                qr_y = y + (LABEL_HEIGHT_PX - qr_size) // 2
+
+                # Center QR code in the label
+                qr_x = x + (LABEL_WIDTH_PX - qr_size) // 2
+                qr_y = y + (LABEL_HEIGHT_PX - qr_size) // 2 + 4
                 sheet.paste(qr_img, (qr_x, qr_y))
 
-                # Draw Item and Piece outside the QR
+                # Draw Item and Piece (above QR)
                 item_text = f"ITEM: {item_num}"
                 piece_text = f"PIECE: {piece_num}/{num_pieces}"
-                draw.text((x + 6, y + 6), item_text, font=font_big, fill="black")
-                draw.text((x + 6, y + 6 + font_big.getbbox(item_text)[3] + 2), piece_text, font=font_big, fill="black")
+                draw.text((x + 4, y + 2), item_text, font=font_big, fill="black")
+                draw.text((x + 4, y + 4 + font_big.getbbox(item_text)[3]), piece_text, font=font_big, fill="black")
 
                 # Draw label border
                 draw.rectangle([x, y, x + LABEL_WIDTH_PX - 1, y + LABEL_HEIGHT_PX - 1], outline="black", width=1)
 
                 label_count += 1
 
+        # Final sheet (if not already saved)
         if label_count > 0:
             buf = io.BytesIO()
             sheet.save(buf, format="PNG", dpi=(DPI, DPI))
-            sheet_data = buf.getvalue()
-
             st.image(buf, caption=f"Sheet {sheet_number}", use_container_width=True)
             st.download_button(
                 label=f"📥 Download Sheet {sheet_number}",
-                data=sheet_data,
+                data=buf.getvalue(),
                 file_name=f"QR_Labels_Sheet_{sheet_number}.png",
                 mime="image/png"
             )
@@ -134,5 +130,3 @@ def create_invoice_labels():
 
 if __name__ == "__main__":
     create_invoice_labels()
-
-
