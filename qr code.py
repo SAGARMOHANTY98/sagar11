@@ -87,7 +87,7 @@ def create_invoice_labels():
                 qr = qrcode.QRCode(
                     version=1,
                     error_correction=qrcode.constants.ERROR_CORRECT_Q,
-                    box_size=3,  # Smaller box size makes overall QR code smaller
+                    box_size=2,  # Reduced from 3 to 2 to make QR code smaller
                     border=1     # Minimal border
                 )
                 qr.add_data(qr_data)
@@ -96,20 +96,17 @@ def create_invoice_labels():
                 # Create QR code image
                 qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
                 
-                # Make QR code smaller (about 60% of label width)
-                qr_size = int(LABEL_WIDTH_PX * 0.6)
+                # Make QR code smaller (50% of label width instead of 60%)
+                qr_size = int(LABEL_WIDTH_PX * 0.5)
                 qr_img = qr_img.resize((qr_size, qr_size))
                 
-                # Center QR code in the label
+                # Center QR code in the label with more margin
                 qr_x = x + (LABEL_WIDTH_PX - qr_size) // 2
                 qr_y = y + (LABEL_HEIGHT_PX - qr_size) // 2
                 sheet.paste(qr_img, (qr_x, qr_y))
 
-                # Optional: Add small text label below QR code
-                # text = f"Item {item_num}/{piece_num}"
-                # text_width = draw.textlength(text, font=ImageFont.load_default())
-                # draw.text((x + (LABEL_WIDTH_PX - text_width)/2, qr_y + qr_size + 5), 
-                #          text, fill="black", font=ImageFont.load_default())
+                # Draw label border to visualize boundaries
+                draw.rectangle([x, y, x + LABEL_WIDTH_PX - 1, y + LABEL_HEIGHT_PX - 1], outline="black", width=1)
 
                 label_count += 1
 
