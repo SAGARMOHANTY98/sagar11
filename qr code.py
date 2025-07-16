@@ -2,7 +2,7 @@ import streamlit as st
 from PIL import Image, ImageDraw, ImageFont
 import io
 import os
-import qrcode  # <-- Added for QR code generation
+import qrcode
 
 # Function to get font
 def get_font(size):
@@ -39,7 +39,7 @@ def calculate_optimal_font_size(label_width, label_height, sample_text_lines):
 # Main Streamlit app function
 def create_invoice_labels():
     st.title("📦 Invoice Label Generator")
-    st.markdown("Creates 65 labels per A4 sheet (38mm x 21mm each)")
+    st.markdown("Creates 65 labels per A4 sheet (38mm x 21mm each) with QR code")
 
     # User inputs
     date = st.text_input("Enter Date (e.g., 01-07-2024)", value="01-07-2024")
@@ -92,7 +92,7 @@ def create_invoice_labels():
         start_x = MARGIN_LEFT_RIGHT_PX
         start_y = MARGIN_TOP_BOTTOM_PX
 
-        # Font size calculation (not used now, but retained for future if needed)
+        # Font size calculation (still used for line height padding)
         sample_lines = [
             f"DATE: {date}",
             f"INVOICE: {invoice_no}",
@@ -138,33 +138,30 @@ def create_invoice_labels():
 
                 draw.rectangle([x, y, x + LABEL_WIDTH_PX - 1, y + LABEL_HEIGHT_PX - 1], outline="black", width=1)
 
-                # ---------- QR CODE REPLACEMENT START ----------
+                # 🧠 Generate QR Code with trimmed data
                 qr_data = (
-                    f"DATE: {date}\n"
-                    f"INVOICE: {invoice_no}\n"
-                    f"SUPPLIER: {supplier}\n"
-                    f"ITEM: {item_num}\n"
-                    f"PIECE: {piece_num}/{num_pieces}"
+                    f"D:{date}\n"
+                    f"INV:{invoice_no}\n"
+                    f"SUP:{supplier[:20]}\n"
+                    f"I:{item_num} P:{piece_num}/{num_pieces}"
                 )
-
                 qr = qrcode.QRCode(
-                    version=1,
-                    error_correction=qrcode.constants.ERROR_CORRECT_M,
-                    box_size=2,
-                    border=1,
+                    version=None,
+                    error_correction=qrcode.constants.ERROR_CORRECT_H,
+                    box_size=4,
+                    border=2
                 )
                 qr.add_data(qr_data)
                 qr.make(fit=True)
                 qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
 
-                qr_padding = 6
-                qr_size = LABEL_HEIGHT_PX - 2 * qr_padding
+                # Resize to fit nicely inside 38x21mm
+                qr_size = min(LABEL_WIDTH_PX, LABEL_HEIGHT_PX) - 10
                 qr_img = qr_img.resize((qr_size, qr_size))
 
                 qr_x = x + (LABEL_WIDTH_PX - qr_size) // 2
                 qr_y = y + (LABEL_HEIGHT_PX - qr_size) // 2
                 sheet.paste(qr_img, (qr_x, qr_y))
-                # ---------- QR CODE REPLACEMENT END ----------
 
                 label_count += 1
 
