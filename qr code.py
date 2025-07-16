@@ -11,6 +11,7 @@ def create_invoice_labels():
     date = st.text_input("Enter Date (e.g., 01-07-2024)", value="01-07-2024")
     invoice_no = st.text_input("Enter Invoice Number (e.g., INV-123)", value="INV-123")
     supplier = st.text_input("Enter Supplier Name", value="Supplier Name")
+    location = st.text_input("Enter Location", value="Warehouse A")  # 🆕 Added location input
     num_items = st.number_input("Number of different items", min_value=1, step=1, value=1)
 
     items_data = {}
@@ -80,37 +81,38 @@ def create_invoice_labels():
                 x = start_x + col * (LABEL_WIDTH_PX + h_spacing)
                 y = start_y + row * (LABEL_HEIGHT_PX + v_spacing)
 
-                # Generate QR Code with all information (compact format)
-                qr_data = f"DT:{date}|INV:{invoice_no}|SUP:{supplier[:15]}|IT:{item_num}|PC:{piece_num}/{num_pieces}"
+                # Generate QR Code with all information including location
+                qr_data = (
+                    f"DT:{date}|INV:{invoice_no}|SUP:{supplier[:15]}"
+                    f"|LOC:{location[:15]}|IT:{item_num}|PC:{piece_num}/{num_pieces}"
+                )
 
-                # Create QR code with compact settings
+                # Create QR code
                 qr = qrcode.QRCode(
                     version=1,
                     error_correction=qrcode.constants.ERROR_CORRECT_Q,
-                    box_size=2,  # Reduced from 3 to 2 to make QR code smaller
-                    border=1     # Minimal border
+                    box_size=2,
+                    border=1
                 )
                 qr.add_data(qr_data)
                 qr.make(fit=True)
-                
-                # Create QR code image
                 qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
-                
-                # Make QR code smaller (50% of label width instead of 60%)
+
+                # Resize QR code
                 qr_size = int(LABEL_WIDTH_PX * 0.5)
                 qr_img = qr_img.resize((qr_size, qr_size))
-                
-                # Center QR code in the label with more margin
+
+                # Paste QR code to label
                 qr_x = x + (LABEL_WIDTH_PX - qr_size) // 2
                 qr_y = y + (LABEL_HEIGHT_PX - qr_size) // 2
                 sheet.paste(qr_img, (qr_x, qr_y))
 
-                # Draw label border to visualize boundaries
+                # Draw border
                 draw.rectangle([x, y, x + LABEL_WIDTH_PX - 1, y + LABEL_HEIGHT_PX - 1], outline="black", width=1)
 
                 label_count += 1
 
-        # Final sheet (if any remaining labels)
+        # Final sheet
         if label_count > 0:
             buf = io.BytesIO()
             sheet.save(buf, format="PNG", dpi=(DPI, DPI))
@@ -126,5 +128,7 @@ def create_invoice_labels():
 
         st.success(f"✅ Generated {total_labels} compact QR labels across {sheet_number} sheet(s).")
 
+# Run the app
 if __name__ == "__main__":
     create_invoice_labels()
+
