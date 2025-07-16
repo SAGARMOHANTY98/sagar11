@@ -1,0 +1,10 @@
+streamlit
+pandas
+openpyxl
+streamlit>=1.34.0
+pandas>=2.2.2
+numpy>=1.26.4
+openpyxl>=3.1.2
+fuzzywuzzy>=0.18.0
+python-Levenshtein>=0.23.0
+pillow
