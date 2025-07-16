@@ -36,7 +36,7 @@ def create_invoice_labels():
         MAX_LABELS_PER_SHEET = COLS * ROWS
 
         MARGIN_LEFT_RIGHT_MM = 8
-        MARGIN_TOP_BOTTOM_MM = 14.5
+        MARGIN_TOP_BOTTOM_MM = 14.77
         V_SPACING_MM = 0
         H_SPACING_MM = 2
         MARGIN_LEFT_RIGHT_PX = int(MARGIN_LEFT_RIGHT_MM / 25.4 * DPI)
