@@ -58,7 +58,7 @@ def create_invoice_labels():
         sheet = Image.new("RGB", (A4_W_PX, A4_H_PX), "white")
         draw = ImageDraw.Draw(sheet)
 
-        font_big = get_font(30)
+        font_medium = get_font(22)  # Smaller than previous 30
 
         for item_num, item_data in items_data.items():
             num_pieces = item_data["pieces"]
@@ -95,21 +95,20 @@ def create_invoice_labels():
                 qr.make(fit=True)
                 qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
 
-                # Resize and paste QR in middle
                 qr_size = int(LABEL_W_PX * 0.44)
                 qr_img = qr_img.resize((qr_size, qr_size))
                 qr_x = x + (LABEL_W_PX - qr_size) // 2
                 qr_y = y + (LABEL_H_PX - qr_size) // 2
                 sheet.paste(qr_img, (qr_x, qr_y))
 
-                # Draw ITEM and PIECE outside QR code (top-right corner)
+                # Draw ITEM and PIECE outside QR
                 item_text = f"ITEM: {item_num}"
                 piece_text = f"PIECE: {piece_num}/{num_pieces}"
-                text_x = x + 20  # shifted right
+                text_x = x + 20
                 text_y = y + 4
 
-                draw.text((text_x, text_y), item_text, font=font_big, fill="black")
-                draw.text((text_x, text_y + font_big.getbbox(item_text)[3] + 2), piece_text, font=font_big, fill="black")
+                draw.text((text_x, text_y), item_text, font=font_medium, fill="black")
+                draw.text((text_x, text_y + font_medium.getbbox(item_text)[3] + 2), piece_text, font=font_medium, fill="black")
 
                 draw.rectangle([x, y, x + LABEL_W_PX - 1, y + LABEL_H_PX - 1], outline="black", width=1)
                 label_count += 1
@@ -126,3 +125,4 @@ def create_invoice_labels():
 
 if __name__ == "__main__":
     create_invoice_labels()
+
