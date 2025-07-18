@@ -43,9 +43,7 @@ def create_invoice_labels():
         MARGIN_Y = int(14.77 / 25.4 * DPI)
         SPACING_X = int(2 / 25.4 * DPI)
 
-        font_small = get_font(12)    # Outside label text
-        font_tiny = get_font(8)      # Inside QR text
-
+        font_small = get_font(12)
         sheet_number = 1
         label_count = 0
         sheet = Image.new("RGB", (A4_WIDTH_PX, A4_HEIGHT_PX), "white")
@@ -74,9 +72,9 @@ def create_invoice_labels():
                 col = label_count % COLS
                 row = label_count // COLS
                 x = MARGIN_X + col * (LABEL_WIDTH_PX + SPACING_X)
-                y = MARGIN_Y + row * LABEL_HEIGHT_PX - 6  # ✅ Slightly move label upward
+                y = MARGIN_Y + row * LABEL_HEIGHT_PX + 3  # ✅ Shift box slightly DOWN
 
-                # QR code with full info
+                # QR data
                 qr_data = f"DT:{date}|INV:{invoice_no}|SUP:{supplier[:15]}|LOC:{location}|ITEM:{item_num}|PC:{piece_num}/{num_pieces}"
                 qr = qrcode.QRCode(
                     version=1,
@@ -92,26 +90,21 @@ def create_invoice_labels():
                 qr_size = int(LABEL_WIDTH_PX * 0.42)
                 qr_img = qr_img.resize((qr_size, qr_size))
 
-                # ✅ Embed text inside QR image
-                qr_draw = ImageDraw.Draw(qr_img)
-                qr_draw.text((2, qr_size - 18), f"ITM:{item_num}", font=font_tiny, fill="black")
-                qr_draw.text((2, qr_size - 9), f"P:{piece_num}/{num_pieces}", font=font_tiny, fill="black")
-
-                # Paste QR
+                # Position QR
                 qr_x = x + (LABEL_WIDTH_PX - qr_size) // 2
-                qr_y = y + (LABEL_HEIGHT_PX - qr_size) // 2 - 4
+                qr_y = y + (LABEL_HEIGHT_PX - qr_size) // 2
                 sheet.paste(qr_img, (qr_x, qr_y))
 
-                # ✅ Text outside QR
+                # Outside Text (to the right of QR)
                 text_item = f"ITEM: {item_num}"
                 text_piece = f"PIECE: {piece_num}/{num_pieces}"
                 text_x = x + LABEL_WIDTH_PX * 0.5
-                text_y_item = y + 3
+                text_y_item = y + 2
                 text_y_piece = text_y_item + 16
                 draw.text((text_x, text_y_item), text_item, font=font_small, fill="black")
                 draw.text((text_x, text_y_piece), text_piece, font=font_small, fill="black")
 
-                # Draw border
+                # Rectangle border
                 draw.rectangle([x, y, x + LABEL_WIDTH_PX - 1, y + LABEL_HEIGHT_PX - 1], outline="black", width=1)
 
                 label_count += 1
@@ -131,6 +124,7 @@ def create_invoice_labels():
 
 if __name__ == "__main__":
     create_invoice_labels()
+
 
 
 
