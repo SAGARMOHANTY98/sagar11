@@ -43,7 +43,9 @@ def create_invoice_labels():
         MARGIN_Y = int(14.77 / 25.4 * DPI)
         SPACING_X = int(2 / 25.4 * DPI)
 
-        font_small = get_font(12)  # ✅ Smaller font for item/piece
+        font_small = get_font(12)    # Outside label text
+        font_tiny = get_font(8)      # Inside QR text
+
         sheet_number = 1
         label_count = 0
         sheet = Image.new("RGB", (A4_WIDTH_PX, A4_HEIGHT_PX), "white")
@@ -55,7 +57,6 @@ def create_invoice_labels():
 
             for piece_num in range(1, num_pieces + 1):
                 if label_count >= MAX_LABELS_PER_SHEET:
-                    # Save & show sheet
                     buf = io.BytesIO()
                     sheet.save(buf, format="PNG", dpi=(DPI, DPI))
                     st.image(buf, caption=f"QR Labels Sheet {sheet_number}", use_container_width=True)
@@ -73,10 +74,10 @@ def create_invoice_labels():
                 col = label_count % COLS
                 row = label_count // COLS
                 x = MARGIN_X + col * (LABEL_WIDTH_PX + SPACING_X)
-                y = MARGIN_Y + row * LABEL_HEIGHT_PX
+                y = MARGIN_Y + row * LABEL_HEIGHT_PX - 6  # ✅ Slightly move label upward
 
-                # Create compact QR
-                qr_data = f"DT:{date}|INV:{invoice_no}|SUP:{supplier[:15]}|LOC:{location}"
+                # QR code with full info
+                qr_data = f"DT:{date}|INV:{invoice_no}|SUP:{supplier[:15]}|LOC:{location}|ITEM:{item_num}|PC:{piece_num}/{num_pieces}"
                 qr = qrcode.QRCode(
                     version=1,
                     error_correction=qrcode.constants.ERROR_CORRECT_Q,
@@ -86,15 +87,22 @@ def create_invoice_labels():
                 qr.add_data(qr_data)
                 qr.make(fit=True)
                 qr_img = qr.make_image(fill_color="black", back_color="white").convert("RGB")
+
+                # Resize QR
                 qr_size = int(LABEL_WIDTH_PX * 0.42)
                 qr_img = qr_img.resize((qr_size, qr_size))
 
-                # Paste QR center
+                # ✅ Embed text inside QR image
+                qr_draw = ImageDraw.Draw(qr_img)
+                qr_draw.text((2, qr_size - 18), f"ITM:{item_num}", font=font_tiny, fill="black")
+                qr_draw.text((2, qr_size - 9), f"P:{piece_num}/{num_pieces}", font=font_tiny, fill="black")
+
+                # Paste QR
                 qr_x = x + (LABEL_WIDTH_PX - qr_size) // 2
                 qr_y = y + (LABEL_HEIGHT_PX - qr_size) // 2 - 4
                 sheet.paste(qr_img, (qr_x, qr_y))
 
-                # ✅ ITEM & PIECE text (small font, right of QR)
+                # ✅ Text outside QR
                 text_item = f"ITEM: {item_num}"
                 text_piece = f"PIECE: {piece_num}/{num_pieces}"
                 text_x = x + LABEL_WIDTH_PX * 0.5
@@ -103,12 +111,11 @@ def create_invoice_labels():
                 draw.text((text_x, text_y_item), text_item, font=font_small, fill="black")
                 draw.text((text_x, text_y_piece), text_piece, font=font_small, fill="black")
 
-                # Border
+                # Draw border
                 draw.rectangle([x, y, x + LABEL_WIDTH_PX - 1, y + LABEL_HEIGHT_PX - 1], outline="black", width=1)
 
                 label_count += 1
 
-        # Last page save
         if label_count > 0:
             buf = io.BytesIO()
             sheet.save(buf, format="PNG", dpi=(DPI, DPI))
@@ -124,5 +131,6 @@ def create_invoice_labels():
 
 if __name__ == "__main__":
     create_invoice_labels()
+
 
 
